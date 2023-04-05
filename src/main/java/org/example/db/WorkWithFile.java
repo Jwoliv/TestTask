@@ -1,7 +1,5 @@
 package org.example.db;
 
-import org.example.entity.UpdatesEntity;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,11 +21,6 @@ public class WorkWithFile {
             throw new RuntimeException(e);
         }
         return strings;
-    }
-    public void writeAskOfBid(UpdatesEntity bestValue) {
-        if (bestValue != null) {
-            writeFile(bestValue.getPrice() + "," + bestValue.getSize() + "\n");
-        }
     }
     public void writeFile(String string) {
         File file = new File(NAME_WRITE_FILE);
