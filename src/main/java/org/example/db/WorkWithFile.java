@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Scanner;
 
 public class WorkWithFile {
-    private final String NAME_READ_FILE = "D:\\programming\\Projects\\TestTask\\src\\main\\java\\org\\example\\input.txt";
-    private final String NAME_WRITE_FILE = "D:\\programming\\Projects\\TestTask\\src\\main\\java\\org\\example\\output.txt";
+    private final String NAME_READ_FILE = "input.txt";
+    private final String NAME_WRITE_FILE = "output.txt";
 
     public List<List<String>> readFileByName() {
         File file = new File(NAME_READ_FILE);

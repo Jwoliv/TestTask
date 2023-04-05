@@ -6,6 +6,7 @@ import org.example.entity.Update;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 public class Main {
     public static void main(String[] args) {
@@ -26,17 +27,39 @@ public class Main {
             char typeRequest = strings.get(0).charAt(0);
             switch (typeRequest) {
                 case 'u' -> {
-                    Update update = new Update(
-                            typeRequest, Integer.parseInt(strings.get(1)),
-                            Integer.parseInt(strings.get(2)), strings.get(3)
-                    );
-                    if (strings.get(3).equals("bid")) {
-                        updatesBid.add(update);
+                    int price = Integer.parseInt(strings.get(1));
+                    int size = Integer.parseInt(strings.get(2));
+                    String typeOfUpdate = strings.get(3);
+
+                    Optional<Update> existingUpdate = updatesAll.stream()
+                            .filter(u -> u.getPrice() == price && u.getTypeOfUpdate().equals(typeOfUpdate))
+                            .findFirst();
+
+                    if (existingUpdate.isPresent()) {
+                        Update update = existingUpdate.get();
+                        int newSize = update.getSize() + size;
+                        update.setSize(newSize);
+
+                        if (typeOfUpdate.equals("bid")) {
+                            updatesBid.remove(update);
+                            updatesBid.add(update);
+                        }
+                        else if (typeOfUpdate.equals("ask")) {
+                            updatesAsk.remove(update);
+                            updatesAsk.add(update);
+                        }
                     }
-                    else if (strings.get(3).equals("ask")) {
-                        updatesAsk.add(update);
+                    else {
+                        Update update = new Update(typeRequest, price, size, typeOfUpdate);
+                        updatesAll.add(update);
+
+                        if (typeOfUpdate.equals("bid")) {
+                            updatesBid.add(update);
+                        }
+                        else if (typeOfUpdate.equals("ask")) {
+                            updatesAsk.add(update);
+                        }
                     }
-                    updatesAll.add(update);
                 }
                 case 'o' -> {
                     String typeOfOrder = strings.get(1);
