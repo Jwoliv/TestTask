@@ -1,132 +1,121 @@
 package org.example;
 
-import org.example.db.WorkWithFile;
-import org.example.entity.Update;
-
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.IntStream;
 
 public class Main {
+    public static ArrayList<Integer> bidPrice = new ArrayList<>();
+    public static ArrayList<Integer> askPrice = new ArrayList<>();
+    public static ArrayList<Integer> bidSize = new ArrayList<>();
+    public static ArrayList<Integer> askSize = new ArrayList<>();
+    public static WorkWithFile workWithFile = new WorkWithFile();
+
     public static void main(String[] args) {
-        List<List<String>> lists = new WorkWithFile().readFileByName();
-        exampleMethod(lists);
-    }
-    public static void exampleMethod(List<List<String>> lists) {
-        if (lists == null) return;
-
-        WorkWithFile workWithFile = new WorkWithFile();
         workWithFile.cleanFile();
-
-        List<Update> updatesAsk = new ArrayList<>();
-        List<Update> updatesBid = new ArrayList<>();
-        List<Update> updatesAll = new ArrayList<>();
-
-
-        for (List<String> strings: lists) {
-            char typeRequest = strings.get(0).charAt(0);
-            switch (typeRequest) {
-                case 'u' -> {
-                    int price = Integer.parseInt(strings.get(1));
-                    int size = Integer.parseInt(strings.get(2));
-                    String typeOfUpdate = strings.get(3);
-
-                    Optional<Update> existingUpdate = updatesAll.stream()
-                            .filter(u -> u.getPrice() == price && u.getTypeOfUpdate().equals(typeOfUpdate))
-                            .findFirst();
-
-                    if (existingUpdate.isPresent()) {
-                        Update update = existingUpdate.get();
-                        int newSize = update.getSize() + size;
-
-                        updatesAll.remove(update);
-                        if (typeOfUpdate.equals("bid")) {
-                            updatesBid.remove(update);
-                            update.setSize(newSize);
-                            updatesBid.add(update);
-                        }
-                        else if (typeOfUpdate.equals("ask")) {
-                            updatesAsk.remove(update);
-                            update.setSize(newSize);
-                            updatesAsk.add(update);
-                        }
-
-                        update.setSize(newSize);
-                        updatesAll.add(update);
+        List<List<String>> stringList = workWithFile.readFileByName();
+        for (List<String> strings : stringList) {
+            switch (strings.get(0)) {
+                case "u" -> {
+                    if (strings.get(3).equals("bid")) {
+                        addUpdate(strings, bidPrice, bidSize);
+                    } else if (strings.get(3).equals("ask")) {
+                        addUpdate(strings, askPrice, askSize);
                     }
-                    else {
-                        Update update = new Update(typeRequest, price, size, typeOfUpdate);
-                        updatesAll.add(update);
+                }
+                case "o" -> {
+                    int orderSize = Integer.parseInt(strings.get(2));
+                    if (strings.get(1).equals("sell")) {
+                        int bestBidPrice = bidPrice.stream()
+                                .max(Integer::compare)
+                                .orElse(0);
 
-                        if (typeOfUpdate.equals("bid")) {
-                            updatesBid.add(update);
+                        if (bestBidPrice >= Integer.parseInt(strings.get(2))) {
+                            processOrder(bestBidPrice, orderSize, bidPrice, bidSize, strings);
                         }
-                        else if (typeOfUpdate.equals("ask")) {
-                            updatesAsk.add(update);
+                    }
+                    else if (strings.get(1).equals("buy")) {
+                        int bestAskPrice = askPrice.stream()
+                                .min(Integer::compare)
+                                .orElse(Integer.MAX_VALUE);
+
+                        if (bestAskPrice <= Integer.parseInt(strings.get(2))) {
+                            processOrder(bestAskPrice, orderSize, askPrice, askSize, strings);
                         }
                     }
                 }
-                case 'o' -> {
-                    String typeOfOrder = strings.get(1);
-                    Update update;
-
-                    if (typeOfOrder.equals("sell")) {
-                        update = updatesBid.stream()
-                                .filter(x -> x.getSize() != 0 && x.getTypeOfUpdate().equals("bid"))
-                                .max(Comparator.comparingInt(Update::getPrice))
-                                .orElse(null);
-
-                        if (update != null && update.getSize() >= Integer.parseInt(strings.get(2))) {
-                            updatesBid.remove(update);
-                            updatesAll.remove(update);
-                            update.setSize(update.getSize() - Integer.parseInt(strings.get(2)));
-                            updatesBid.add(update);
-                            updatesAll.add(update);
-                        }
-                    }
-                    else if (typeOfOrder.equals("buy")) {
-                        update = updatesAsk.stream()
-                                .filter(x -> x.getSize() != 0 && x.getTypeOfUpdate().equals("ask"))
-                                .min(Comparator.comparingInt(Update::getPrice))
-                                .orElse(null);
-
-                        if (update != null && update.getSize() >= Integer.parseInt(strings.get(2))) {
-                            updatesAsk.remove(update);
-                            updatesAll.remove(update);
-                            update.setSize(update.getSize() - Integer.parseInt(strings.get(2)));
-                            updatesAsk.add(update);
-                            updatesAll.add(update);
-                        }
-                    }
-                }
-                case 'q' -> {
+                case "q" -> {
                     if (strings.size() == 2) {
-                        Update update = null;
                         if (strings.get(1).equals("best_bid")) {
-                            update = updatesBid.stream()
-                                    .filter(x -> x.getSize() != 0 && x.getTypeOfUpdate().equals("bid"))
-                                    .max(Comparator.comparingInt(Update::getPrice))
-                                    .orElse(null);
-                        }
-                        else if (strings.get(1).equals("best_ask")) {
-                            update = updatesAsk.stream()
-                                    .filter(x -> x.getSize() != 0 && x.getTypeOfUpdate().equals("ask"))
-                                    .min(Comparator.comparingInt(Update::getPrice))
-                                    .orElse(null);
-                        }
-                        if (update != null) {
-                            workWithFile.writeFile(update.getPrice() + "," + update.getSize() + "\n");
+                            int maxPrice = bidPrice.stream()
+                                    .max(Integer::compare)
+                                    .orElse(0);
+
+                            findQuery(maxPrice, bidPrice, bidSize);
+                        } else if (strings.get(0).equals("best_ask")) {
+                            int minPrice = askPrice.stream()
+                                    .min(Integer::compare)
+                                    .orElse(0);
+
+                            findQuery(minPrice, askPrice, askSize);
                         }
                     }
                     else if (strings.size() == 3) {
                         int price = Integer.parseInt(strings.get(2));
-                        long count = updatesAll.stream().filter(x -> x.getPrice() == price).mapToLong(Update::getSize).sum();
 
-                        workWithFile.writeFile(count + "\n");
+                        int sumOfSizes = IntStream.range(0, askPrice.size())
+                                .filter(i -> askPrice.get(i) == price)
+                                .map(i -> askSize.get(i))
+                                .sum();
+
+                        sumOfSizes += IntStream.range(0, bidPrice.size())
+                                .filter(i -> bidPrice.get(i) == price)
+                                .map(i -> bidSize.get(i))
+                                .sum();
+
+                        workWithFile.writeFile(sumOfSizes + "\n");
                     }
                 }
             }
+        }
+    }
+
+    public static void processOrder(int price, int orderSize, List<Integer> prices, List<Integer> sizes, List<String> strings) {
+        int index = prices.indexOf(price);
+        int size = sizes.get(index);
+
+        if (size >= orderSize) {
+            sizes.set(index, size - orderSize);
+            int bidPriceElement = Integer.parseInt(strings.get(2));
+            int bidIndex = bidPrice.indexOf(bidPriceElement);
+            if (bidIndex == -1) {
+                prices.add(bidPriceElement);
+                sizes.add(orderSize);
+            } else {
+                sizes.set(bidIndex, sizes.get(bidIndex) + orderSize);
+            }
+        }
+    }
+    public static void findQuery(int price, List<Integer> prices, List<Integer> sizes) {
+        if (prices == null || sizes == null) return;
+
+        int index = prices.indexOf(price);
+        int size = sizes.get(index);
+
+        workWithFile.writeFile(price + "," + size + "\n");
+    }
+    public static void addUpdate(List<String> strings, List<Integer> prices, List<Integer> sizes) {
+        if (strings == null || prices == null || sizes == null) return;
+
+        int price = Integer.parseInt(strings.get(1));
+        int size = Integer.parseInt(strings.get(2));
+
+        int index = prices.indexOf(price);
+        if (index == -1) {
+            prices.add(price);
+            sizes.add(size);
+        } else {
+            sizes.set(index, sizes.get(index) + size);
         }
     }
 }
