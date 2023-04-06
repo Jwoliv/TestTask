@@ -17,6 +17,7 @@ public class Main {
         if (lists == null) return;
 
         WorkWithFile workWithFile = new WorkWithFile();
+        workWithFile.cleanFile();
 
         List<Update> updatesAsk = new ArrayList<>();
         List<Update> updatesBid = new ArrayList<>();
@@ -38,16 +39,21 @@ public class Main {
                     if (existingUpdate.isPresent()) {
                         Update update = existingUpdate.get();
                         int newSize = update.getSize() + size;
-                        update.setSize(newSize);
 
+                        updatesAll.remove(update);
                         if (typeOfUpdate.equals("bid")) {
                             updatesBid.remove(update);
+                            update.setSize(newSize);
                             updatesBid.add(update);
                         }
                         else if (typeOfUpdate.equals("ask")) {
                             updatesAsk.remove(update);
+                            update.setSize(newSize);
                             updatesAsk.add(update);
                         }
+
+                        update.setSize(newSize);
+                        updatesAll.add(update);
                     }
                     else {
                         Update update = new Update(typeRequest, price, size, typeOfUpdate);
@@ -73,17 +79,16 @@ public class Main {
 
                         if (update != null && update.getSize() >= Integer.parseInt(strings.get(2))) {
                             updatesBid.remove(update);
-                            updatesBid.remove(update);
+                            updatesAll.remove(update);
                             update.setSize(update.getSize() - Integer.parseInt(strings.get(2)));
                             updatesBid.add(update);
-                            updatesBid.add(update);
-                            System.out.println(update.getSize());
+                            updatesAll.add(update);
                         }
                     }
                     else if (typeOfOrder.equals("buy")) {
                         update = updatesAsk.stream()
                                 .filter(x -> x.getSize() != 0 && x.getTypeOfUpdate().equals("ask"))
-                                .max(Comparator.comparingInt(Update::getPrice))
+                                .min(Comparator.comparingInt(Update::getPrice))
                                 .orElse(null);
 
                         if (update != null && update.getSize() >= Integer.parseInt(strings.get(2))) {
@@ -107,7 +112,7 @@ public class Main {
                         else if (strings.get(1).equals("best_ask")) {
                             update = updatesAsk.stream()
                                     .filter(x -> x.getSize() != 0 && x.getTypeOfUpdate().equals("ask"))
-                                    .max(Comparator.comparingInt(Update::getPrice))
+                                    .min(Comparator.comparingInt(Update::getPrice))
                                     .orElse(null);
                         }
                         if (update != null) {
@@ -118,7 +123,6 @@ public class Main {
                         int price = Integer.parseInt(strings.get(2));
                         long count = updatesAll.stream().filter(x -> x.getPrice() == price).mapToLong(Update::getSize).sum();
 
-                        updatesAll.removeIf(x -> x.getPrice() == price && x.getSize() > 0);
                         workWithFile.writeFile(count + "\n");
                     }
                 }
