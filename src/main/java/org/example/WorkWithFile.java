@@ -1,13 +1,9 @@
 package org.example;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
 
 public class WorkWithFile {
     private final String NAME_READ_FILE = "input.txt";
@@ -15,27 +11,30 @@ public class WorkWithFile {
 
     public List<List<String>> readFileByName() {
         List<List<String>> strings = new ArrayList<>();
-        try {
-            List<String> lines = Files.readAllLines(Paths.get(NAME_READ_FILE));
-            for (String line : lines) {
-                strings.add(Arrays.asList(line.split(",")));
+        try (Scanner scanner = new Scanner(new File(NAME_READ_FILE))) {
+            while (scanner.hasNextLine()) {
+                String string = scanner.nextLine();
+                strings.add(List.of(string.split(",")));
             }
-        } catch (IOException e) {
+        } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
         return strings;
     }
     public void writeFile(String string) {
-        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(NAME_WRITE_FILE, true))) {
+        try (
+                FileWriter fileWriter = new FileWriter(NAME_WRITE_FILE, true);
+                BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)
+        ) {
             bufferedWriter.append(string);
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
     public void cleanFile() {
         try (FileWriter fileWriter = new FileWriter(NAME_WRITE_FILE)) {
             fileWriter.write("");
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
