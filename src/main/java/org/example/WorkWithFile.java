@@ -16,7 +16,7 @@ public class WorkWithFile {
                 String string = scanner.nextLine();
                 strings.add(List.of(string.split(",")));
             }
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return strings;
@@ -26,15 +26,8 @@ public class WorkWithFile {
                 FileWriter fileWriter = new FileWriter(NAME_WRITE_FILE, true);
                 BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)
         ) {
-            bufferedWriter.append(string);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    public void cleanFile() {
-        try (FileWriter fileWriter = new FileWriter(NAME_WRITE_FILE)) {
-            fileWriter.write("");
-        } catch (IOException e) {
+            bufferedWriter.write(string);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

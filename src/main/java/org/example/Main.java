@@ -1,6 +1,7 @@
 package org.example;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Main {
@@ -11,15 +12,16 @@ public class Main {
     public static WorkWithFile workWithFile = new WorkWithFile();
 
     public static void main(String[] args) {
-        workWithFile.cleanFile();
         List<List<String>> stringList = workWithFile.readFileByName();
+        if (stringList == null || stringList.isEmpty()) return;
+
         for (List<String> strings : stringList) {
             switch (strings.get(0)) {
                 case "u" -> {
                     if (strings.get(3).equals("bid")) {
-                        addUpdateToBid(strings);
+                        addUpdate(strings, bidSize, bidPrice);
                     } else if (strings.get(3).equals("ask")) {
-                        addUpdateToAsk(strings);
+                        addUpdate(strings, askSize, askPrice);
                     }
                 }
                 case "o" -> {
@@ -43,12 +45,14 @@ public class Main {
                     if (strings.size() == 2) {
                         if (strings.get(1).equals("best_bid")) {
                             int maxPrice = bidPrice.stream().max(Integer::compare).orElse(0);
-
-                            findQuery(maxPrice, bidPrice, bidSize);
+                            if (maxPrice != 0) {
+                                findQuery(maxPrice, bidPrice, bidSize);
+                            }
                         } else if (strings.get(0).equals("best_ask")) {
                             int minPrice = askPrice.stream().min(Integer::compare).orElse(0);
-
-                            findQuery(minPrice, askPrice, askSize);
+                            if (minPrice != 0) {
+                                findQuery(minPrice, askPrice, askSize);
+                            }
                         }
                     }
                     else if (strings.size() == 3) {
@@ -83,77 +87,57 @@ public class Main {
                 prices.add(index, price);
                 sizes.add(index, size);
             }
-            if (index == 0 && size == 0) {
-                prices.remove(0);
-                sizes.remove(0);
-            }
         }
         else {
             prices.add(0, price);
             sizes.add(0, size);
         }
     }
-    public static void addUpdateToBid(List<String> strings) {
-        if (strings == null) return;
+    public static void addUpdate(List<String> strings, List<Integer> sizes, List<Integer> prices) {
+        if (strings == null || strings.isEmpty()) return;
 
         int price = Integer.parseInt(strings.get(1));
         int size = Integer.parseInt(strings.get(2));
 
-        if (!bidPrice.isEmpty() && !bidSize.isEmpty()) {
-            int index = bidPrice.indexOf(price);
+        if (!prices.isEmpty() && !sizes.isEmpty()) {
+            int index = prices.indexOf(price);
             if (index == -1) {
-                bidPrice.add(price);
-                bidSize.add(size);
+                prices.add(price);
+                sizes.add(size);
             } else {
-                processOfAddFields(index, price, size, bidSize, bidPrice);
+                processOfAddFields(index, price, size, sizes, prices);
             }
         } else {
-            processOfAddFields(0, price, size, bidSize, bidPrice);
-        }
-    }
-    public static void addUpdateToAsk(List<String> strings) {
-        if (strings == null) return;
-
-        int price = Integer.parseInt(strings.get(1));
-        int size = Integer.parseInt(strings.get(2));
-
-        if (!askPrice.isEmpty() && !askSize.isEmpty()) {
-            int index = askPrice.indexOf(price);
-
-            if (index == -1 && size > 0) {
-                askPrice.add(price);
-                askSize.add(size);
-            } else {
-                processOfAddFields(index, price, size, askSize, askPrice);
-            }
-        } else {
-            processOfAddFields(0, price, size, askSize, askPrice);
+            processOfAddFields(0, price, size, sizes, prices);
         }
     }
     public static void processOrder(int size, boolean isBuy) {
         List<Integer> priceList = isBuy ? askPrice : bidPrice;
         List<Integer> sizeList = isBuy ? askSize : bidSize;
 
-        if (!priceList.isEmpty()) {
-            int index;
-            if (isBuy) {
-                index = priceList.indexOf(priceList.stream().min(Integer::compareTo).orElse(0));
-            } else {
-                index = priceList.indexOf(priceList.stream().max(Integer::compareTo).orElse(0));
-            }
-            int sizeRemainder = size;
-            while (sizeRemainder > 0 && !priceList.isEmpty()) {
+        if (!priceList.isEmpty() && !sizeList.isEmpty()) {
+            int targetPrice = findBestPriceAskOrBid(isBuy, priceList);
+            int index = priceList.indexOf(targetPrice);
+            while (size > 0 && index >= 0 && index < priceList.size()) {
                 int currentSize = sizeList.get(index);
-                if (currentSize <= sizeRemainder) {
-                    sizeRemainder -= currentSize;
+                if (currentSize <= size) {
+                    size -= currentSize;
                     priceList.remove(index);
                     sizeList.remove(index);
                 } else {
-                    sizeList.set(index, currentSize - sizeRemainder);
-                    sizeRemainder = 0;
+                    sizeList.set(index, currentSize - size);
+                    size = 0;
                 }
+                if (priceList.isEmpty() || sizeList.isEmpty()) {
+                    break;
+                }
+                targetPrice = findBestPriceAskOrBid(isBuy, priceList);
+                index = priceList.indexOf(targetPrice);
             }
         }
+    }
+    public static int findBestPriceAskOrBid(boolean isBuy, List<Integer> priceList) {
+        return isBuy ? Collections.min(priceList) : Collections.max(priceList);
     }
     public static void findQuery(int price, List<Integer> prices, List<Integer> sizes) {
         if (prices == null || sizes == null || prices.isEmpty() || sizes.isEmpty()) return;
