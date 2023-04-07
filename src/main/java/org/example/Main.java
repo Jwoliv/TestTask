@@ -27,7 +27,7 @@ public class Main {
                 case "o" -> {
                     int orderSize = Integer.parseInt(strings.get(2));
                     if (strings.get(1).equals("sell")) {
-                        int bestBidPrice = bidPrice.stream().max(Integer::compare).orElse(0);
+                        int bestBidPrice = bidPrice.stream().max(Integer::compare).orElse(Integer.MIN_VALUE);
 
                         if (bestBidPrice >= Integer.parseInt(strings.get(2))) {
                             processOrder(orderSize, false);
@@ -44,12 +44,12 @@ public class Main {
                 case "q" -> {
                     if (strings.size() == 2) {
                         if (strings.get(1).equals("best_bid")) {
-                            int maxPrice = bidPrice.stream().max(Integer::compare).orElse(0);
+                            int maxPrice = bidPrice.stream().max(Integer::compare).orElse(Integer.MIN_VALUE);
                             if (maxPrice != 0) {
                                 findQuery(maxPrice, bidPrice, bidSize);
                             }
                         } else if (strings.get(0).equals("best_ask")) {
-                            int minPrice = askPrice.stream().min(Integer::compare).orElse(0);
+                            int minPrice = askPrice.stream().min(Integer::compare).orElse(Integer.MAX_VALUE);
                             if (minPrice != 0) {
                                 findQuery(minPrice, askPrice, askSize);
                             }
@@ -120,16 +120,18 @@ public class Main {
             int index = priceList.indexOf(targetPrice);
             while (size > 0 && index >= 0 && index < priceList.size()) {
                 int currentSize = sizeList.get(index);
-                if (currentSize <= size) {
-                    size -= currentSize;
-                    priceList.remove(index);
-                    sizeList.remove(index);
-                } else {
-                    sizeList.set(index, currentSize - size);
-                    size = 0;
-                }
-                if (priceList.isEmpty() || sizeList.isEmpty()) {
-                    break;
+                if (currentSize != 0) {
+                    if (currentSize <= size) {
+                        size -= currentSize;
+                        priceList.remove(index);
+                        sizeList.remove(index);
+                    } else {
+                        sizeList.set(index, currentSize - size);
+                        size = 0;
+                    }
+                    if (priceList.isEmpty() || sizeList.isEmpty()) {
+                        break;
+                    }
                 }
                 targetPrice = findBestPriceAskOrBid(isBuy, priceList);
                 index = priceList.indexOf(targetPrice);
