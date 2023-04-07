@@ -27,18 +27,10 @@ public class Main {
                 case "o" -> {
                     int orderSize = Integer.parseInt(strings.get(2));
                     if (strings.get(1).equals("sell")) {
-                        int bestBidPrice = bidPrice.stream().max(Integer::compare).orElse(Integer.MIN_VALUE);
-
-                        if (bestBidPrice >= Integer.parseInt(strings.get(2))) {
-                            processOrder(orderSize, false);
-                        }
+                        processOrder(orderSize, false);
                     }
                     else if (strings.get(1).equals("buy")) {
-                        int bestAskPrice = askPrice.stream().min(Integer::compare).orElse(Integer.MAX_VALUE);
-
-                        if (bestAskPrice <= Integer.parseInt(strings.get(2))) {
-                            processOrder(orderSize, true);
-                        }
+                        processOrder(orderSize, true);
                     }
                 }
                 case "q" -> {
@@ -116,30 +108,51 @@ public class Main {
         List<Integer> sizeList = isBuy ? askSize : bidSize;
 
         if (!priceList.isEmpty() && !sizeList.isEmpty()) {
-            int targetPrice = findBestPriceAskOrBid(isBuy, priceList);
+            int targetPrice = findBestPriceAskOrBid(isBuy, priceList, sizeList);
             int index = priceList.indexOf(targetPrice);
-            while (size > 0 && index >= 0 && index < priceList.size()) {
+
+            while (size > 0 || index >= 0 && index < priceList.size() || targetPrice == -1) {
                 int currentSize = sizeList.get(index);
-                if (currentSize != 0) {
-                    if (currentSize <= size) {
-                        size -= currentSize;
-                        priceList.remove(index);
-                        sizeList.remove(index);
-                    } else {
-                        sizeList.set(index, currentSize - size);
-                        size = 0;
-                    }
-                    if (priceList.isEmpty() || sizeList.isEmpty()) {
-                        break;
-                    }
+
+                if (currentSize < size) {
+                    size -= currentSize;
+                    priceList.set(index, targetPrice);
+                    sizeList.set(index, 0);
+                } else if (currentSize == size) {
+                    size -= currentSize;
+                    sizeList.set(index, size);
+                    break;
                 }
-                targetPrice = findBestPriceAskOrBid(isBuy, priceList);
+                if (sizeList.stream().allMatch(x -> x == 0)) {
+                    break;
+                }
+                targetPrice = findBestPriceAskOrBid(isBuy, priceList, sizeList);
                 index = priceList.indexOf(targetPrice);
             }
         }
     }
-    public static int findBestPriceAskOrBid(boolean isBuy, List<Integer> priceList) {
-        return isBuy ? Collections.min(priceList) : Collections.max(priceList);
+    public static int findBestPriceAskOrBid(boolean isBuy, List<Integer> priceList, List<Integer> sizeList) {
+        int price = -1;
+        if (priceList == null || sizeList == null) return price;
+
+        if (!priceList.isEmpty() && !sizeList.isEmpty()) {
+            if (isBuy) {
+                price = Integer.MIN_VALUE;
+                for (int i = 0; i < sizeList.size(); i++) {
+                    if (sizeList.get(i) != 0 && price < priceList.get(i)) {
+                        price = priceList.get(i);
+                    }
+                }
+            } else {
+                price = Integer.MAX_VALUE;
+                for (int i = 0; i < sizeList.size(); i++) {
+                    if (sizeList.get(i) != 0 && price > priceList.get(i)) {
+                        price = priceList.get(i);
+                    }
+                }
+            }
+        }
+        return price;
     }
     public static void findQuery(int price, List<Integer> prices, List<Integer> sizes) {
         if (prices == null || sizes == null || prices.isEmpty() || sizes.isEmpty()) return;
