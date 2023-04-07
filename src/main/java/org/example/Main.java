@@ -2,7 +2,6 @@ package org.example;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 
 public class Main {
     public static ArrayList<Integer> bidPrice = new ArrayList<>();
@@ -18,9 +17,9 @@ public class Main {
             switch (strings.get(0)) {
                 case "u" -> {
                     if (strings.get(3).equals("bid")) {
-                        addUpdate(strings, bidPrice, bidSize);
+                        addUpdateToBid(strings);
                     } else if (strings.get(3).equals("ask")) {
-                        addUpdate(strings, askPrice, askSize);
+                        addUpdateToAsk(strings);
                     }
                 }
                 case "o" -> {
@@ -31,7 +30,7 @@ public class Main {
                                 .orElse(0);
 
                         if (bestBidPrice >= Integer.parseInt(strings.get(2))) {
-                            processOrder(bestBidPrice, orderSize, bidPrice, bidSize, strings);
+                            processOrder(orderSize, false);
                         }
                     }
                     else if (strings.get(1).equals("buy")) {
@@ -40,7 +39,7 @@ public class Main {
                                 .orElse(Integer.MAX_VALUE);
 
                         if (bestAskPrice <= Integer.parseInt(strings.get(2))) {
-                            processOrder(bestAskPrice, orderSize, askPrice, askSize, strings);
+                            processOrder(orderSize, true);
                         }
                     }
                 }
@@ -62,37 +61,91 @@ public class Main {
                     }
                     else if (strings.size() == 3) {
                         int price = Integer.parseInt(strings.get(2));
-
-                        int sumOfSizes = IntStream.range(0, askPrice.size())
-                                .filter(i -> askPrice.get(i) == price)
-                                .map(i -> askSize.get(i))
-                                .sum();
-
-                        sumOfSizes += IntStream.range(0, bidPrice.size())
-                                .filter(i -> bidPrice.get(i) == price)
-                                .map(i -> bidSize.get(i))
-                                .sum();
-
-                        workWithFile.writeFile(sumOfSizes + "\n");
+                        int totalSize = findTotalSizeAtPrice(price);
+                        workWithFile.writeFile(totalSize + "\n");
                     }
                 }
             }
         }
     }
+    public static int findTotalSizeAtPrice(int price) {
+        int sumOfSizes = askPrice.stream()
+                .filter(p -> p == price)
+                .mapToInt(p -> askSize.get(askPrice.indexOf(p)))
+                .sum();
 
-    public static void processOrder(int price, int orderSize, List<Integer> prices, List<Integer> sizes, List<String> strings) {
-        int index = prices.indexOf(price);
-        int size = sizes.get(index);
+        sumOfSizes += bidPrice.stream()
+                .filter(p -> p == price)
+                .mapToInt(p -> bidSize.get(bidPrice.indexOf(p)))
+                .sum();
 
-        if (size >= orderSize) {
-            sizes.set(index, size - orderSize);
-            int bidPriceElement = Integer.parseInt(strings.get(2));
-            int bidIndex = bidPrice.indexOf(bidPriceElement);
-            if (bidIndex == -1) {
-                prices.add(bidPriceElement);
-                sizes.add(orderSize);
+        return sumOfSizes;
+    }
+    public static void processOfAddFields(int index, int price, int size, List<Integer> sizes, List<Integer> prices) {
+        if (prices == null || sizes == null) return;
+
+        if (price == prices.get(index)) {
+            sizes.set(index, size);
+        }
+        else {
+            prices.add(index, price);
+            sizes.add(index, size);
+        }
+        if (index == 0 && size == 0) {
+            prices.remove(0);
+            sizes.remove(0);
+        }
+    }
+    public static void addUpdateToBid(List<String> strings) {
+        if (strings == null) return;
+
+        int price = Integer.parseInt(strings.get(1));
+        int size = Integer.parseInt(strings.get(2));
+        int index = bidPrice.indexOf(price);
+        if (index == -1) {
+            bidPrice.add(price);
+            bidSize.add(size);
+        }
+        else {
+            processOfAddFields(index, price, size, bidSize, bidPrice);
+        }
+    }
+    public static void addUpdateToAsk(List<String> strings) {
+        if (strings == null) return;
+
+        int price = Integer.parseInt(strings.get(1));
+        int size = Integer.parseInt(strings.get(2));
+        int index = askPrice.indexOf(price);
+
+        if (index == -1 && size > 0) {
+            askPrice.add(price);
+            askSize.add(size);
+        }
+        else {
+            processOfAddFields(index, price, size, askSize, askPrice);
+        }
+    }
+    public static void processOrder(int size, boolean isBuy) {
+        List<Integer> priceList = isBuy ? askPrice : bidPrice;
+        List<Integer> sizeList = isBuy ? askSize : bidSize;
+
+        int index;
+        if (isBuy) {
+            index = priceList.indexOf(priceList.stream().min(Integer::compareTo).orElse(0));
+        }
+        else {
+            index = priceList.indexOf(priceList.stream().max(Integer::compareTo).orElse(0));
+        }
+        int sizeRemainder = size;
+        while (sizeRemainder > 0 && !priceList.isEmpty()) {
+            int currentSize = sizeList.get(index);
+            if (currentSize <= sizeRemainder) {
+                sizeRemainder -= currentSize;
+                priceList.remove(index);
+                sizeList.remove(index);
             } else {
-                sizes.set(bidIndex, sizes.get(bidIndex) + orderSize);
+                sizeList.set(index, currentSize - sizeRemainder);
+                sizeRemainder = 0;
             }
         }
     }
@@ -103,19 +156,5 @@ public class Main {
         int size = sizes.get(index);
 
         workWithFile.writeFile(price + "," + size + "\n");
-    }
-    public static void addUpdate(List<String> strings, List<Integer> prices, List<Integer> sizes) {
-        if (strings == null || prices == null || sizes == null) return;
-
-        int price = Integer.parseInt(strings.get(1));
-        int size = Integer.parseInt(strings.get(2));
-
-        int index = prices.indexOf(price);
-        if (index == -1) {
-            prices.add(price);
-            sizes.add(size);
-        } else {
-            sizes.set(index, sizes.get(index) + size);
-        }
     }
 }
