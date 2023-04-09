@@ -9,12 +9,12 @@ public class WorkWithFile {
     private final String NAME_READ_FILE = "input.txt";
     private final String NAME_WRITE_FILE = "output.txt";
 
-    public List<List<String>> readFileByName() {
-        List<List<String>> strings = new ArrayList<>();
+    public List<String[]> readFileByName() {
+        List<String[]> strings = new ArrayList<>();
         try (Scanner scanner = new Scanner(new File(NAME_READ_FILE))) {
             while (scanner.hasNextLine()) {
                 String string = scanner.nextLine();
-                strings.add(List.of(string.split(",")));
+                strings.add(string.split(","));
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
