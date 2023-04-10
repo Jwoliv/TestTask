@@ -1,26 +1,12 @@
 package org.example;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 
 public class WorkWithFile {
-    private final String NAME_READ_FILE = "input.txt";
-    private final String NAME_WRITE_FILE = "output.txt";
+    public static final String NAME_READ_FILE = "input.txt";
+    private static final String NAME_WRITE_FILE = "output.txt";
 
-    public List<String[]> readFileByName() {
-        List<String[]> strings = new ArrayList<>();
-        try (Scanner scanner = new Scanner(new File(NAME_READ_FILE))) {
-            while (scanner.hasNextLine()) {
-                String string = scanner.nextLine();
-                strings.add(string.split(","));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return strings;
-    }
     public void writeFile(String string) {
         try (
                 FileWriter fileWriter = new FileWriter(NAME_WRITE_FILE, true);

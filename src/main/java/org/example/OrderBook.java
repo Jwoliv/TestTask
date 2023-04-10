@@ -4,6 +4,7 @@ import java.util.*;
 
 public class OrderBook {
     private final WorkWithFile workWithFile = new WorkWithFile();
+    private final StringBuilder stringBuilder = new StringBuilder();
     private Map<Integer, Integer> bids;
     private Map<Integer, Integer> asks;
 
@@ -31,30 +32,19 @@ public class OrderBook {
     public void query(String[] input) {
         switch (input[1]) {
             case "best_bid" -> {
-                if (bids.isEmpty()) {
-                    System.out.println("Bids empty");
-                } else {
-                    int price = bids.keySet().iterator().next();
-                    int size = bids.get(price);
-                    workWithFile.writeFile(price + "," + size + "\n");
-                }
+                int price = bids.keySet().stream().findFirst().orElse(0);
+                int size = bids.getOrDefault(price, 0);
+                stringBuilder.append(String.format("%s,%s", price, size));
             }
             case "best_ask" -> {
-                if (asks.isEmpty()) {
-                    System.out.println("Asks empty");
-                } else {
-                    int price = asks.keySet().iterator().next();
-                    int size = asks.get(price);
-                    workWithFile.writeFile(price + "," + size + "\n");
-                }
+                int price = asks.keySet().stream().findFirst().orElse(0);
+                int size = asks.getOrDefault(price, 0);
+                stringBuilder.append(String.format("%s,%s\n", price, size));
             }
             case "size" -> {
                 int price = Integer.parseInt(input[2]);
-                if (bids.containsKey(price)) {
-                    workWithFile.writeFile(bids.get(price) + "\n");
-                } else {
-                    workWithFile.writeFile(asks.getOrDefault(price, 0) + "\n");
-                }
+                int size = bids.getOrDefault(price, asks.getOrDefault(price, 0));
+                stringBuilder.append(String.format("%s\n", size));
             }
         }
     }
@@ -73,11 +63,13 @@ public class OrderBook {
         }
     }
     public void marketOrder(String[] input) {
-        int size = Integer.parseInt(input[2]);
         if (input[1].equals("buy")) {
-            processOrder(size, asks);
+            processOrder(Integer.parseInt(input[2]), asks);
         } else if (input[1].equals("sell")) {
-            processOrder(size, bids);
+            processOrder(Integer.parseInt(input[2]), bids);
         }
+    }
+    public void writeResultToFile() {
+        workWithFile.writeFile(stringBuilder.toString());
     }
 }
